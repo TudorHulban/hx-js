@@ -1,21 +1,48 @@
 document.addEventListener('DOMContentLoaded', (event) => {
     const ERROR_STATUS_CODES = [400, 401, 403, 404, 500];
 
-    const CONFIG = {
-        MS_LOADING_INDICATOR_DELAY: 100,
-        MS_DISABLE_TRIGGER_BUTTON: 500,
-        MS_DURATION_DISPLAY_POPOVER: 3000,
-        MS_DURATION_DISPLAY_ERROR_ALERT: 7000,
-        MS_FILE_UPLOAD_RESET_TIMEOUT: 1500
-    };
+    const CONFIG = Object.freeze(
+        {
+            MS_LOADING_INDICATOR_DELAY: 100,
+            MS_DISABLE_TRIGGER_BUTTON: 500,
+            MS_DURATION_DISPLAY_POPOVER: 3000,
+            MS_DURATION_DISPLAY_ERROR_ALERT: 7000,
+            MS_FILE_UPLOAD_RESET_TIMEOUT: 1500
+        }
+    );
 
-    const HX = Object.freeze({
-        ENABLE: 'hx-enable',
-        DISABLE: 'hx-disable',
-        REQUIRE: 'hx-require',
-    });
+    const HX = Object.freeze(
+        {
+            // HTTP Methods
+            GET: 'hx-get',
+            POST: 'hx-post',
+            UPLOAD: 'hx-upload',
 
-    const VERSION = "3.08";
+            // Element Control
+            ENABLE: 'hx-enable',
+            DISABLE: 'hx-disable',
+            SWAP: 'hx-swap',
+            SEND: 'hx-send',
+            REDIRECT: 'hx-redirect',
+
+            // Validation
+            REQUIRE: 'hx-require',
+            MIN: 'hx-min',
+            MAX: 'hx-max',
+            VDISABLE: 'hx-vdisable',
+            PDISABLE: 'hx-pdisable',
+
+            // Visibility/Display
+            SHOW: 'hx-show',
+            HIDE: 'hx-hide',
+            SHOW_ONLOAD: 'hx-show-onload',
+
+            // Event Handlers
+            ONCHANGE_ENABLE: 'hx-onchange-enable'
+        }
+    );
+
+    const VERSION = "0.0.82";
 
     console.log("version %s", VERSION);
 
@@ -95,7 +122,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             id => {
                 const element = document.querySelector(id);
                 if (element) {
-                    if (attribute.startsWith('hx-onchange-enable')) {
+                    if (attribute.startsWith(HX.ONCHANGE_ENABLE)) {
                         element.disabled = triggeringElement.disabled;
                     } else {
                         element.disabled = !shouldEnable;
@@ -106,9 +133,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     const validateLength = (element, showPopup = true) => {
-        const minLength = element.getAttribute('hx-min') ? parseInt(element.getAttribute('hx-min'), 10) : null;
-        const maxLength = element.getAttribute('hx-max') ? parseInt(element.getAttribute('hx-max'), 10) : null;
-        const targetDisableId = element.getAttribute('hx-vdisable');
+        const minLength = element.getAttribute(HX.MIN) ? parseInt(element.getAttribute(HX.MIN), 10) : null;
+        const maxLength = element.getAttribute(HX.MAX) ? parseInt(element.getAttribute(HX.MAX), 10) : null;
+        const targetDisableId = element.getAttribute(HX.VDISABLE);
         const targetElement = targetDisableId ? document.querySelector(targetDisableId) : null;
         const valueLength = element.value.length;
 
@@ -154,7 +181,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     const validateRequirements = (element, form = null) => {
-        const requireAttr = element.getAttribute('hx-require');
+        const requireAttr = element.getAttribute(HX.REQUIRE);
         if (requireAttr) {
             const requiredIds = requireAttr.split(',');
 
@@ -169,7 +196,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         let allValid = true;
 
-        const lengthElements = form.querySelectorAll('[hx-min], [hx-max]');
+        const lengthElements = form.querySelectorAll(`[${HX.MIN}], [${HX.MAX}]`);
         lengthElements.forEach(
             (el) => {
                 if (!validateLength(el, true)) { // Show length popovers on submission
@@ -180,9 +207,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const passwordGroups = new Set();
 
-        form.querySelectorAll('[hx-pdisable]').forEach(
+        form.querySelectorAll(`[${HX.PDISABLE}]`).forEach(
             (el) => {
-                const pdisableValue = el.getAttribute('hx-pdisable');
+                const pdisableValue = el.getAttribute(HX.PDISABLE);
 
                 if (!passwordGroups.has(pdisableValue)) {
                     passwordGroups.add(pdisableValue);
@@ -206,23 +233,23 @@ document.addEventListener('DOMContentLoaded', (event) => {
     };
 
     const handleAjax = (element, form, file = null) => {
-        const hxEnable = element.getAttribute('hx-enable');
+        const hxEnable = element.getAttribute(HX.ENABLE);
         if (hxEnable) {
             toggleElements(hxEnable, true);
         }
 
-        const hxDisable = element.getAttribute('hx-disable');
+        const hxDisable = element.getAttribute(HX.DISABLE);
         if (hxDisable) {
             toggleElements(hxDisable, false);
         }
 
-        const method = element.hasAttribute('hx-get') ? 'GET' : 'POST';
-        const endpoint = element.getAttribute('hx-get') ||
-            element.getAttribute('hx-post') ||
-            element.getAttribute('hx-upload');
-        const targetSelectors = element.getAttribute('hx-swap');
+        const method = element.hasAttribute(HX.GET) ? 'GET' : 'POST';
+        const endpoint = element.getAttribute(HX.GET) ||
+            element.getAttribute(HX.POST) ||
+            element.getAttribute(HX.UPLOAD);
+        const targetSelectors = element.getAttribute(HX.SWAP);
         const targetElements = targetSelectors ? targetSelectors.split(',').map(selector => document.querySelector(selector.trim())) : [];
-        const redirectUrl = element.getAttribute('hx-redirect');
+        const redirectUrl = element.getAttribute(HX.REDIRECT);
 
         let fetchOptions = { method };
         const formData = new FormData(form);
@@ -238,7 +265,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 return;
             }
 
-            const hxSend = element.getAttribute('hx-send');
+            const hxSend = element.getAttribute(HX.SEND);
             if (hxSend) {
                 const ids = hxSend.split(',').map(id => id.trim());
                 ids.forEach(
@@ -259,7 +286,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             fetchOptions.body = formData;
         }
 
-        if (method === 'POST' && element.hasAttribute('hx-upload')) {
+        if (method === 'POST' && element.hasAttribute(HX.UPLOAD)) {
             if (!file) {
                 return;
             }
@@ -373,8 +400,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const form = element.closest('form') || document.createElement('form');
 
         handleAjax(element, form);
-        handleHxShowHide(element, 'hx-show');
-        handleHxShowHide(element, 'hx-hide');
+        handleHxShowHide(element, HX.SHOW);
+        handleHxShowHide(element, HX.HIDE);
     };
 
     const handleSelectChange = (event) => {
@@ -476,7 +503,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     const targetSelector = parts[0];
                     const timeToShow = parts.length > 1 ? parseInt(parts[1], 10) : 0;
                     const cssTransitionClass = parts.length > 2 ? parts[2] : '';
-                    applyShowHide(targetSelector, timeToShow, cssTransitionClass, attributeName === 'hx-show');
+                    applyShowHide(targetSelector, timeToShow, cssTransitionClass, attributeName === HX.SHOW);
                 }
             },
         );
@@ -494,7 +521,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     const targetSelector = parts[0];
                     const timeToShow = parts.length > 1 ? parseInt(parts[1], 10) : 0;
                     const cssTransitionClass = parts.length > 2 ? parts[2] : '';
-                    applyShowHide(targetSelector, timeToShow, cssTransitionClass, attributeName === 'hx-show-onload');
+                    applyShowHide(targetSelector, timeToShow, cssTransitionClass, attributeName === HX.SHOW_ONLOAD);
                 }
             },
         );
@@ -503,20 +530,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const reattachEventListeners = (element) => {
         if (!element) return;
 
-        if (element.matches('[hx-show], [hx-hide]')) {
-            handleHxShowHide(element, 'hx-show');
-            handleHxShowHide(element, 'hx-hide');
+        if (element.matches(`[${HX.SHOW}], [${HX.HIDE}]`)) {
+            handleHxShowHide(element, HX.SHOW);
+            handleHxShowHide(element, HX.HIDE);
         }
 
-        if (element.matches('button[hx-get], button[hx-post], a[hx-get], a[hx-post]')) {
+        if (element.matches(`button[${HX.GET}], button[${HX.POST}], a[${HX.GET}], a[${HX.POST}]`)) {
             element.addEventListener('click', handleButtonClick);
         }
 
-        if (element.matches('button[hx-upload], a[hx-upload]')) {
+        if (element.matches(`button[${HX.UPLOAD}], a[${HX.UPLOAD}]`)) {
             element.addEventListener('click', handleUploadClick);
         }
 
-        if (element.matches('select[hx-get], select[hx-post]')) {
+        if (element.matches(`select[${HX.GET}], select[${HX.POST}]`)) {
             element.addEventListener('change', handleSelectChange);
         }
 
@@ -524,26 +551,26 @@ document.addEventListener('DOMContentLoaded', (event) => {
             element.addEventListener('dblclick', handleDblClickClear);
         }
 
-        element.querySelectorAll('[hx-show], [hx-hide]').forEach(
+        element.querySelectorAll(`[${HX.SHOW}], [${HX.HIDE}]`).forEach(
             el => {
-                handleHxShowHide(el, 'hx-show');
-                handleHxShowHide(el, 'hx-hide');
+                handleHxShowHide(el, HX.SHOW);
+                handleHxShowHide(el, HX.HIDE);
             },
         );
 
-        element.querySelectorAll('button[hx-get], button[hx-post], a[hx-get], a[hx-post]').forEach(
+        element.querySelectorAll(`button[${HX.GET}], button[${HX.POST}], a[${HX.GET}], a[${HX.POST}]`).forEach(
             el => {
                 el.addEventListener('click', handleButtonClick);
             },
         );
 
-        element.querySelectorAll('button[hx-upload], a[hx-upload]').forEach(
+        element.querySelectorAll(`button[${HX.UPLOAD}], a[${HX.UPLOAD}]`).forEach(
             el => {
                 el.addEventListener('click', handleUploadClick);
             },
         );
 
-        element.querySelectorAll('select[hx-get], select[hx-post]').forEach(
+        element.querySelectorAll(`select[${HX.GET}], select[${HX.POST}]`).forEach(
             el => {
                 el.addEventListener('change', handleSelectChange);
             },
@@ -555,24 +582,24 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
     };
 
-    document.querySelectorAll('[hx-show], [hx-hide]').forEach(
+    document.querySelectorAll(`[${HX.SHOW}], [${HX.HIDE}]`).forEach(
         el => {
-            handleHxShowHide(el, 'hx-show');
-            handleHxShowHide(el, 'hx-hide');
+            handleHxShowHide(el, HX.SHOW);
+            handleHxShowHide(el, HX.HIDE);
         },
     );
 
-    document.querySelectorAll('[hx-show-onload]').forEach(
+    document.querySelectorAll(`[${HX.SHOW_ONLOAD}]`).forEach(
         el => {
-            handleHxShowOnLoad(el, 'hx-show-onload');
+            handleHxShowOnLoad(el, HX.SHOW_ONLOAD);
         },
     );
 
     const processedGroups = new Set();
 
-    document.querySelectorAll('[hx-pdisable]').forEach(
+    document.querySelectorAll(`[${HX.PDISABLE}]`).forEach(
         (element) => {
-            const pdisableValue = element.getAttribute('hx-pdisable');
+            const pdisableValue = element.getAttribute(HX.PDISABLE);
             if (processedGroups.has(pdisableValue)) return;
 
             processedGroups.add(pdisableValue);
@@ -609,17 +636,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
         },
     );
 
-    const elementsWithoutUpload = document.querySelectorAll('button[hx-get], button[hx-post], a[hx-get], a[hx-post]');
+    const elementsWithoutUpload = document.querySelectorAll(`button[${HX.GET}], button[${HX.POST}], a[${HX.GET}], a[${HX.POST}]`);
     elementsWithoutUpload.forEach(
         el => el.addEventListener('click', handleButtonClick)
     );
 
-    const elementsWithUpload = document.querySelectorAll('button[hx-upload], a[hx-upload]');
+    const elementsWithUpload = document.querySelectorAll(`button[${HX.UPLOAD}], a[${HX.UPLOAD}]`);
     elementsWithUpload.forEach(
         el => el.addEventListener('click', handleUploadClick)
     );
 
-    const elementsSelect = document.querySelectorAll('select[hx-get], select[hx-post]');
+    const elementsSelect = document.querySelectorAll(`select[${HX.GET}], select[${HX.POST}]`);
     elementsSelect.forEach(
         el => el.addEventListener('change', handleSelectChange)
     );
@@ -629,7 +656,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         searchItems.addEventListener('dblclick', handleDblClickClear);
     }
 
-    document.querySelectorAll('[hx-min], [hx-max]').forEach(
+    document.querySelectorAll(`[${HX.MIN}], [${HX.MAX}]`).forEach(
         (element) => {
             element.addEventListener('change', () => {
                 validateLength(element);
@@ -638,11 +665,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
         },
     );
 
-    document.querySelectorAll('[hx-onchange-enable]').forEach(
+    document.querySelectorAll(`[${HX.ONCHANGE_ENABLE}]`).forEach(
         element => {
             element.addEventListener('change', function () {
-                const hxChangeEnable = this.getAttribute('hx-onchange-enable');
-                toggleElements(`hx-onchange-enable,${hxChangeEnable}`, false, this);
+                const hxChangeEnable = this.getAttribute(HX.ONCHANGE_ENABLE);
+                toggleElements(`${HX.ONCHANGE_ENABLE},${hxChangeEnable}`, false, this);
                 isInitialLoad = false; // Reset flag after first interaction
             });
         },
